@@ -1,60 +1,39 @@
 const express = require('express');
 const axios = require("axios");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.send("50 WPM Modu Aktif: Hatalar Giderildi, Sistem Çalışıyor!");
+  res.send("Bot aktif ve Render üzerinde çalışıyor!");
 });
 
 app.listen(PORT, () => {
-  console.log(`Sunucu ${PORT} portunda aktif.`);
+  console.log(`Sunucu ${PORT} portunda dinleniyor.`);
 });
 
-const TOKEN = process.env.TOKEN; 
-const CHANNEL_IDS = process.env.CHANNEL_IDS;
-const MESSAGE = process.env.MESSAGE;
+const token = process.env.TOKEN;
+const channelId = process.env.CHANNEL_ID;
+const message = process.env.MESSAGE;
 
-if (!TOKEN || !CHANNEL_IDS || !MESSAGE) {
-    console.error("HATA: Değişkenler eksik! Render panelini kontrol et.");
+if (!token || !channelId || !message) {
+    console.error("HATA: Environment (gizli değişkenler) bölümünde TOKEN, CHANNEL_ID veya MESSAGE eksik!");
 } else {
-    const channelList = CHANNEL_IDS.split(",").map(c => c.trim());
-    
-    async function startProcess() {
-        while (true) { 
-            for (const channelId of channelList) {
-                try {
-                    // 1. "Yazıyor..." animasyonu
-                    await axios.post(
-                        `https://discord.com/api/v9/channels/${channelId}/typing`,
-                        {},
-                        { headers: { "Authorization": TOKEN } }
-                    );
+  
+    setInterval(sendMessage, 5000);
+}
 
-                    // 2. 50 WPM HESABI: Harf başına 240ms bekleme
-                    const typingTime = MESSAGE.length * 240;
-                    console.log(`[${channelId}] Yazılıyor... Bekleme süresi: ${Math.round(typingTime/1000)} saniye.`);
-                    
-                    await new Promise(resolve => setTimeout(resolve, typingTime));
-
-                    // 3. Mesajı Gönder
-                    await axios.post(
-                        `https://discord.com/api/v9/channels/${channelId}/messages`,
-                        { content: MESSAGE },
-                        { headers: { "Authorization": TOKEN } }
-                    );
-                    console.log(`[${channelId}] ✅ Mesaj başarıyla atıldı.`);
-
-                    // 4. Kanal geçiş aralığı (Hata düzeltildi: Parantez eklendi)
-                    await new Promise(resolve => setTimeout(resolve, 500));
-
-                } catch (err) {
-                    console.error(`[${channelId}] ❌ Hata: ${err.response?.status || "Bağlantı"}. 5sn sonra devam...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
-                }
-            }
-            console.log("Liste tamamlandı, başa dönülüyor...");
-        }
+function sendMessage() {
+  axios.post(`https://discord.com/api/v9/channels/${channelId}/messages`, {
+    content: message
+  }, {
+    headers: {
+      "Authorization": token,
+      "Content-Type": "application/json"
     }
-    startProcess();
+  }).then(() => {
+    console.log(`✅ Mesaj başarıyla gönderildi: "${message}"`);
+  }).catch((err) => {
+    console.error("❌ Mesaj gönderilemedi. Hata:", err.response?.status, err.response?.data);
+  });
 }
